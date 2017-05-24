@@ -63,6 +63,8 @@ public class FusionFileSystem extends FileSystem {
             case 2:
                 this.logDay = logItems[1];
                 break;
+            default:
+                throw new IOException("invalid fusion file system path");
         }
 
         this.accessKey = conf.getTrimmed(FUSION_FS_ACCESS_KEY);
@@ -130,6 +132,8 @@ public class FusionFileSystem extends FileSystem {
                 day = filePathItems[1];
                 fusionPath = String.format("%s/%s_%s", FUSION_VERSION, domain, day);
                 break;
+            default:
+                throw new IOException("invalid fusion file system path");
         }
 
         if (fusionPath != null && fusionPath.length() != 0) {
@@ -216,6 +220,8 @@ public class FusionFileSystem extends FileSystem {
                     day = filePathItems[1];
                     fusionPath = String.format("%s/%s_%s", FUSION_VERSION, domain, day);
                     break;
+                default:
+                    throw new IOException("invalid fusion file system path");
             }
             if (fusionPath != null && fusionPath.length() != 0) {
                 fusionPath = fusionPath + "/";

@@ -54,6 +54,9 @@ public class FusionInputStream extends FSInputStream {
         }
         byte[] bodyBytes = getResp.body().bytes();
         System.arraycopy(bodyBytes, 0, buffer, off, bodyBytes.length);
+        //close
+        getResp.body().close();
+        //incr position
         this.position += bodyBytes.length;
         return bodyBytes.length;
     }
