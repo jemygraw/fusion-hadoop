@@ -27,10 +27,11 @@ public class FusionFileSystem extends FileSystem {
     private URI baseUri;
     private FusionLogger fusionLogger;
 
+
     /**
      * fusion://domain/2017-04-30/00/part-00000.gz
      * <p>
-     * v2/img.yimutian.com_2017-04-30-00_part-00000.gz
+     * v2/domain_2017-04-30-00_part-00000.gz
      */
     @Override
     public void initialize(URI uri, Configuration conf) throws IOException {
@@ -102,7 +103,7 @@ public class FusionFileSystem extends FileSystem {
     /*
     * fusion://domain/2017-04-30/00/part-00000.gz
      * <p>
-     * v2/img.yimutian.com_2017-04-30-00_part-00000.gz
+     * v2/domain_2017-04-30-00_part-00000.gz
     * */
     public FileStatus[] listStatus(Path path) throws IOException {
         FusionLogger.LogItem[] fusionLogItems = this.loadFusionLogList(path);
@@ -176,9 +177,9 @@ public class FusionFileSystem extends FileSystem {
     }
 
     /*
-         fusion://if-pbl.qiniudn.com/2017-05-22/00/part-00000.gz
+         fusion://domain/2017-05-22/00/part-00000.gz
      ->
-         v2/if-pbl.qiniudn.com_2017-05-22-16_part-00000.gz
+         v2/domain_2017-05-22-16_part-00000.gz
      */
     public FileStatus getFileStatus(Path path) throws IOException {
         FusionLogger.LogItem[] fusionLogItems = this.loadFusionLogList(path);
