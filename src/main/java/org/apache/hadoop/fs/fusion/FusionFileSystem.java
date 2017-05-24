@@ -9,6 +9,7 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,14 +25,7 @@ public class FusionFileSystem extends FileSystem {
     private OkHttpClient fsClient;
     private Path workingDir;
     private URI baseUri;
-    private String logDomain;
-    private String logDay;
-    private String logHour;
-    private String logFile;
-    private String accessKey;
-    private String secretKey;
     private FusionLogger fusionLogger;
-    private FusionLogger.LogItem[] fusionLogItems;
 
     /**
      * fusion://domain/2017-04-30/00/part-00000.gz
@@ -47,41 +41,35 @@ public class FusionFileSystem extends FileSystem {
 
         log.info("base uri is " + this.baseUri.toString());
         log.info("working dir is " + this.workingDir.toString());
-        this.logDomain = uri.getAuthority();
+
+        String accessKey = conf.getTrimmed(FUSION_FS_ACCESS_KEY);
+        String secretKey = conf.getTrimmed(FUSION_FS_SECRET_KEY);
+        this.fusionLogger = new FusionLogger(accessKey, secretKey);
+
+        this.setConf(conf);
+        this.fsClient = new OkHttpClient();
+    }
+
+    private FusionLogger.LogItem[] loadFusionLogList(Path fusionFsPath) throws QiniuException, UnsupportedEncodingException {
+        URI uri = fusionFsPath.toUri();
+        String logDomain = uri.getAuthority();
+        String logDay = null;
+
         log.info("parse hdfs uri " + uri.toString());
         String[] logItems = uri.getPath().split("/");
-        switch (logItems.length) {
-            case 4:
-                this.logDay = logItems[1]; // 2017-04-30
-                this.logHour = logItems[2]; // 00
-                this.logFile = logItems[3]; // part-00000.gz
-                break;
-            case 3:
-                this.logDay = logItems[1];
-                this.logHour = logItems[2];
-                break;
-            case 2:
-                this.logDay = logItems[1];
-                break;
-            default:
-                throw new IOException("invalid fusion file system path");
+        if (logItems.length >= 2) {
+            logDay = logItems[1];
         }
-
-        this.accessKey = conf.getTrimmed(FUSION_FS_ACCESS_KEY);
-        this.secretKey = conf.getTrimmed(FUSION_FS_SECRET_KEY);
-        this.fusionLogger = new FusionLogger(this.accessKey, this.secretKey);
-        log.info("get log list for domain:" + this.logDomain + ", day: " + this.logDay);
+        log.info("get log list for domain:" + logDomain + ", day: " + logDay);
         try {
-            FusionLogger.LogListResult logListResult = this.fusionLogger.getLogList(new String[]{this.logDomain},
+            FusionLogger.LogListResult logListResult = this.fusionLogger.getLogList(new String[]{logDomain},
                     logDay);
-            this.fusionLogItems = logListResult.data.get(this.logDomain);
+            return logListResult.data.get(logDomain);
         } catch (QiniuException ex) {
             log.error("get log list error, " + ex.response);
             throw ex;
         }
 
-        this.setConf(conf);
-        this.fsClient = new OkHttpClient();
     }
 
     public URI getUri() {
@@ -89,6 +77,8 @@ public class FusionFileSystem extends FileSystem {
     }
 
     public FSDataInputStream open(Path path, int bufferSize) throws IOException {
+        FusionLogger.LogItem[] fusionLogItems = this.loadFusionLogList(path);
+
         log.info("open fs data input stream for " + path.toString());
         String[] fileItems = path.toUri().getPath().split("/");
         String domain = path.toUri().getAuthority();
@@ -97,7 +87,7 @@ public class FusionFileSystem extends FileSystem {
         String itemPartName = fileItems[3];
         String fusionPath = String.format("%s/%s_%s-%s_%s", FUSION_VERSION, domain, itemDay, itemHour, itemPartName);
         log.info("find input stream for log file " + fusionPath);
-        for (FusionLogger.LogItem item : this.fusionLogItems) {
+        for (FusionLogger.LogItem item : fusionLogItems) {
             if (item.name.equals(fusionPath)) {
                 return new FSDataInputStream(new FusionInputStream(this.fsClient, item));
             }
@@ -112,6 +102,7 @@ public class FusionFileSystem extends FileSystem {
      * v2/img.yimutian.com_2017-04-30-00_part-00000.gz
     * */
     public FileStatus[] listStatus(Path path) throws IOException {
+        FusionLogger.LogItem[] fusionLogItems = this.loadFusionLogList(path);
         log.info("list status for path: " + path.toString());
         String domain = path.toUri().getAuthority();
         String dirPath = path.toUri().getPath();
@@ -138,9 +129,9 @@ public class FusionFileSystem extends FileSystem {
 
         if (fusionPath != null && fusionPath.length() != 0) {
             log.info("find status for fusion dir path " + fusionPath);
-            if (this.fusionLogItems != null && this.fusionLogItems.length > 0) {
+            if (fusionLogItems != null && fusionLogItems.length > 0) {
                 List<FileStatus> fileStatusList = new ArrayList<FileStatus>();
-                for (FusionLogger.LogItem item : this.fusionLogItems) {
+                for (FusionLogger.LogItem item : fusionLogItems) {
                     if (item.name.startsWith(fusionPath)) {
                         String gzFileName = item.name.split("/")[1];//trim fusion version tag
                         String[] gzFileNameItems = gzFileName.split("_");
@@ -184,6 +175,7 @@ public class FusionFileSystem extends FileSystem {
          v2/if-pbl.qiniudn.com_2017-05-22-16_part-00000.gz
      */
     public FileStatus getFileStatus(Path path) throws IOException {
+        FusionLogger.LogItem[] fusionLogItems = this.loadFusionLogList(path);
         log.info("get file status for " + path.toString());
         String domain = path.toUri().getAuthority();
         String filePath = path.toUri().getPath();
@@ -202,8 +194,8 @@ public class FusionFileSystem extends FileSystem {
             fusionPath = String.format("%s/%s_%s-%s_%s", FUSION_VERSION, domain, day, hour, gzFileName);
             log.info("find status for fusion file path " + fusionPath);
 
-            if (this.fusionLogItems != null) {
-                for (FusionLogger.LogItem item : this.fusionLogItems) {
+            if (fusionLogItems != null) {
+                for (FusionLogger.LogItem item : fusionLogItems) {
                     if (item.name.equals(fusionPath)) {
                         return new FileStatus(item.size, false, 0, 0, item.mtime * 1000, path);
                     }
@@ -226,8 +218,8 @@ public class FusionFileSystem extends FileSystem {
             if (fusionPath != null && fusionPath.length() != 0) {
                 fusionPath = fusionPath + "/";
                 log.info("find status for fusion dir path " + fusionPath);
-                if (this.fusionLogItems != null && this.fusionLogItems.length > 0) {
-                    FusionLogger.LogItem item = this.fusionLogItems[0];
+                if (fusionLogItems != null && fusionLogItems.length > 0) {
+                    FusionLogger.LogItem item = fusionLogItems[0];
                     return new FileStatus(0, true, 0, 0, item.mtime * 1000, path);
                 }
             }
