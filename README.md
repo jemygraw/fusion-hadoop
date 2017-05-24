@@ -22,7 +22,7 @@ $ hdfs dfs -ls fusion://img.abc.com/2017-05-22/22/
 ```
 
 ```
-$ hdfs dfs -ls fusion://img.abc.com/2017-05-22/part-00000.gz
+$ hdfs dfs -ls fusion://img.abc.com/2017-05-22/22/part-00000.gz
 ```
 
 
