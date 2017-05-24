@@ -156,7 +156,7 @@ public class FusionFileSystem extends FileSystem {
                         }
                     }
                 }
-                
+
                 return fileStatusList.toArray(new FileStatus[fileStatusList.size()]);
             }
         }
@@ -213,17 +213,19 @@ public class FusionFileSystem extends FileSystem {
                     day = filePathItems[1];
                     hour = filePathItems[2];
                     fusionPath = String.format("%s/%s_%s-%s", FUSION_VERSION, domain, day, hour);
+                    //treat as dir
+                    fusionPath += "_";
                     break;
                 case 2:
                     day = filePathItems[1];
                     fusionPath = String.format("%s/%s_%s", FUSION_VERSION, domain, day);
+                    //treat as dir
+                    fusionPath += "-";
                     break;
                 default:
                     throw new IOException("invalid fusion file system path");
             }
             if (fusionPath != null && fusionPath.length() != 0) {
-                //add underscore to treat it as dir
-                fusionPath += "_";
                 log.info("find status for fusion dir path " + fusionPath);
                 if (fusionLogItems != null && fusionLogItems.length > 0) {
                     for (FusionLogger.LogItem item : fusionLogItems) {
