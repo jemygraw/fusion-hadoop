@@ -156,7 +156,7 @@ public class FusionFileSystem extends FileSystem {
                         }
                     }
                 }
-
+                
                 return fileStatusList.toArray(new FileStatus[fileStatusList.size()]);
             }
         }
@@ -222,11 +222,15 @@ public class FusionFileSystem extends FileSystem {
                     throw new IOException("invalid fusion file system path");
             }
             if (fusionPath != null && fusionPath.length() != 0) {
-                fusionPath = fusionPath + "/";
+                //add underscore to treat it as dir
+                fusionPath += "_";
                 log.info("find status for fusion dir path " + fusionPath);
                 if (fusionLogItems != null && fusionLogItems.length > 0) {
-                    FusionLogger.LogItem item = fusionLogItems[0];
-                    return new FileStatus(0, true, 0, 0, item.mtime * 1000, path);
+                    for (FusionLogger.LogItem item : fusionLogItems) {
+                        if (item.name.startsWith(fusionPath)) {
+                            return new FileStatus(0, true, 0, 0, item.mtime * 1000, path);
+                        }
+                    }
                 }
             }
         }
