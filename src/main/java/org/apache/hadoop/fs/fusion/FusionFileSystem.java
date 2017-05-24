@@ -192,7 +192,7 @@ public class FusionFileSystem extends FileSystem {
         String fusionPath = null;
 
         String[] filePathItems = filePath.split("/");
-        if (filePath.endsWith(".gz") && filePathItems.length == 4) {
+        if (filePath.endsWith(".gz") || filePathItems.length == 4) {
             //gz files
             day = filePathItems[1];
             hour = filePathItems[2];
@@ -225,7 +225,7 @@ public class FusionFileSystem extends FileSystem {
                 default:
                     throw new IOException("invalid fusion file system path");
             }
-            if (fusionPath != null && fusionPath.length() != 0) {
+            if (fusionPath.length() != 0) {
                 log.info("find status for fusion dir path " + fusionPath);
                 if (fusionLogItems != null && fusionLogItems.length > 0) {
                     for (FusionLogger.LogItem item : fusionLogItems) {
