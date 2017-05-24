@@ -50,7 +50,7 @@ public class FusionFileSystem extends FileSystem {
         this.fsClient = new OkHttpClient();
     }
 
-    private FusionLogger.LogItem[] loadFusionLogList(Path fusionFsPath) throws QiniuException, UnsupportedEncodingException {
+    private FusionLogger.LogItem[] loadFusionLogList(Path fusionFsPath) throws QiniuException, UnsupportedEncodingException, IOException {
         URI uri = fusionFsPath.toUri();
         String logDomain = uri.getAuthority();
         String logDay = null;
@@ -59,7 +59,10 @@ public class FusionFileSystem extends FileSystem {
         String[] logItems = uri.getPath().split("/");
         if (logItems.length >= 2) {
             logDay = logItems[1];
+        } else {
+            throw new IOException("invalid fusion file system path");
         }
+
         log.info("get log list for domain:" + logDomain + ", day: " + logDay);
         try {
             FusionLogger.LogListResult logListResult = this.fusionLogger.getLogList(new String[]{logDomain},
@@ -145,8 +148,11 @@ public class FusionFileSystem extends FileSystem {
                                     new Path(this.baseUri.getScheme(), this.baseUri.getAuthority(), fusionFsPath)));
                         } else {
                             String fusionFsPath = String.format("/%s/%s", itemDay, itemHour);
-                            fileStatusList.add(new FileStatus(0, true, 0, 0, item.mtime * 1000,
-                                    new Path(this.baseUri.getScheme(), this.baseUri.getAuthority(), fusionFsPath)));
+                            FileStatus fileStatus = new FileStatus(0, true, 0, 0, item.mtime * 1000,
+                                    new Path(this.baseUri.getScheme(), this.baseUri.getAuthority(), fusionFsPath));
+                            if (!fileStatusList.contains(fileStatus)) {
+                                fileStatusList.add(fileStatus);
+                            }
                         }
                     }
                 }
