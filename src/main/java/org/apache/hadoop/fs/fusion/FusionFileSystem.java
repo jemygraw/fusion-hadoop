@@ -9,7 +9,6 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +50,7 @@ public class FusionFileSystem extends FileSystem {
         this.fsClient = new OkHttpClient();
     }
 
-    private FusionLogger.LogItem[] loadFusionLogList(Path fusionFsPath) throws QiniuException, UnsupportedEncodingException, IOException {
+    private FusionLogger.LogItem[] loadFusionLogList(Path fusionFsPath) throws IOException {
         URI uri = fusionFsPath.toUri();
         String logDomain = uri.getAuthority();
         String logDay = null;
@@ -114,7 +113,7 @@ public class FusionFileSystem extends FileSystem {
         String day;
         String hour;
         String[] filePathItems = dirPath.split("/");
-        String fusionPath = null;
+        String fusionPath;
         boolean isGzFolder = false;
         switch (filePathItems.length) {
             case 3:
