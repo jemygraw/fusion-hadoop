@@ -9,6 +9,7 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,7 +89,7 @@ public class FusionFileSystem extends FileSystem {
         String itemDay = fileItems[1];
         String itemHour = fileItems[2];
         String itemPartName = fileItems[3];
-        String fusionPath = String.format("%s/%s_%s-%s_%s", FUSION_VERSION, domain, itemDay, itemHour, itemPartName);
+        String fusionPath = createFusionFilePath(domain, itemDay, itemHour, itemPartName);
         log.info("find input stream for log file " + fusionPath);
         for (FusionLogger.LogItem item : fusionLogItems) {
             if (item.name.equals(fusionPath)) {
@@ -120,11 +121,11 @@ public class FusionFileSystem extends FileSystem {
                 isGzFolder = true;
                 day = filePathItems[1];
                 hour = filePathItems[2];
-                fusionPath = String.format("%s/%s_%s-%s", FUSION_VERSION, domain, day, hour);
+                fusionPath = createFusionDirPath(domain, day, hour);
                 break;
             case 2:
                 day = filePathItems[1];
-                fusionPath = String.format("%s/%s_%s", FUSION_VERSION, domain, day);
+                fusionPath = createFusionDirPath(domain, day);
                 break;
             default:
                 throw new IOException("invalid fusion file system path");
@@ -197,7 +198,7 @@ public class FusionFileSystem extends FileSystem {
             day = filePathItems[1];
             hour = filePathItems[2];
             gzFileName = filePathItems[3];
-            fusionPath = String.format("%s/%s_%s-%s_%s", FUSION_VERSION, domain, day, hour, gzFileName);
+            fusionPath = createFusionFilePath(domain, day, hour, gzFileName);
             log.info("find status for fusion file path " + fusionPath);
 
             if (fusionLogItems != null) {
@@ -212,13 +213,13 @@ public class FusionFileSystem extends FileSystem {
                 case 3:
                     day = filePathItems[1];
                     hour = filePathItems[2];
-                    fusionPath = String.format("%s/%s_%s-%s", FUSION_VERSION, domain, day, hour);
+                    fusionPath = createFusionDirPath(domain, day, hour);
                     //treat as dir
                     fusionPath += "_";
                     break;
                 case 2:
                     day = filePathItems[1];
-                    fusionPath = String.format("%s/%s_%s", FUSION_VERSION, domain, day);
+                    fusionPath = createFusionDirPath(domain, day);
                     //treat as dir
                     fusionPath += "-";
                     break;
@@ -237,6 +238,18 @@ public class FusionFileSystem extends FileSystem {
             }
         }
         return null;
+    }
+
+    private String createFusionFilePath(String domain, String day, String hour, String gzFileName) {
+        return String.format("%s/%s_%s-%s_%s", FUSION_VERSION, domain, day, hour, gzFileName);
+    }
+
+    private String createFusionDirPath(String domain, String day, String hour) {
+        return String.format("%s/%s_%s-%s", FUSION_VERSION, domain, day, hour);
+    }
+
+    private String createFusionDirPath(String domain, String day) {
+        return String.format("%s/%s_%s", FUSION_VERSION, domain, day);
     }
 
     @Override
