@@ -9,7 +9,6 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -101,10 +100,10 @@ public class FusionFileSystem extends FileSystem {
 
 
     /*
-    * fusion://domain/2017-04-30/00/part-00000.gz
+     * fusion://domain/2017-04-30/00/part-00000.gz
      * <p>
      * v2/domain_2017-04-30-00_part-00000.gz
-    * */
+     * */
     public FileStatus[] listStatus(Path path) throws IOException {
         FusionLogger.LogItem[] fusionLogItems = this.loadFusionLogList(path);
         log.info("list status for path: " + path.toString());
@@ -140,7 +139,7 @@ public class FusionFileSystem extends FileSystem {
                         String gzFileName = item.name.split("/")[1];//trim fusion version tag
                         String[] gzFileNameItems = gzFileName.split("_");
                         String itemDay = gzFileNameItems[1].substring(0, 10);
-                        String itemHour = gzFileNameItems[1].substring(11, 13);
+                        String itemHour = gzFileNameItems[1].substring(11);
                         String itemPartName = gzFileNameItems[2];
 
                         if (isGzFolder) {
@@ -214,14 +213,10 @@ public class FusionFileSystem extends FileSystem {
                     day = filePathItems[1];
                     hour = filePathItems[2];
                     fusionPath = createFusionDirPath(domain, day, hour);
-                    //treat as dir
-                    fusionPath += "_";
                     break;
                 case 2:
                     day = filePathItems[1];
                     fusionPath = createFusionDirPath(domain, day);
-                    //treat as dir
-                    fusionPath += "-";
                     break;
                 default:
                     throw new IOException("invalid fusion file system path");
