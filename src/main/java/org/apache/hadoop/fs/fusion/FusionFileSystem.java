@@ -9,7 +9,6 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -87,9 +86,9 @@ public class FusionFileSystem extends FileSystem {
         String[] fileItems = path.toUri().getPath().split("/");
         String domain = path.toUri().getAuthority();
         String itemDay = fileItems[1];
-        String itemHour = fileItems[2];
+        String itemTime = fileItems[2];
         String itemPartName = fileItems[3];
-        String fusionPath = createFusionFilePath(domain, itemDay, itemHour, itemPartName);
+        String fusionPath = createFusionFilePath(domain, itemDay, itemTime, itemPartName);
         log.info("find input stream for log file " + fusionPath);
         for (FusionLogger.LogItem item : fusionLogItems) {
             if (item.name.equals(fusionPath)) {
@@ -101,10 +100,10 @@ public class FusionFileSystem extends FileSystem {
 
 
     /*
-    * fusion://domain/2017-04-30/00/part-00000.gz
+     * fusion://domain/2017-04-30/00/part-00000.gz
      * <p>
      * v2/domain_2017-04-30-00_part-00000.gz
-    * */
+     * */
     public FileStatus[] listStatus(Path path) throws IOException {
         FusionLogger.LogItem[] fusionLogItems = this.loadFusionLogList(path);
         log.info("list status for path: " + path.toString());
@@ -112,7 +111,7 @@ public class FusionFileSystem extends FileSystem {
         String dirPath = path.toUri().getPath();
 
         String day;
-        String hour;
+        String time;
         String[] filePathItems = dirPath.split("/");
         String fusionPath;
         boolean isGzFolder = false;
@@ -120,8 +119,8 @@ public class FusionFileSystem extends FileSystem {
             case 3:
                 isGzFolder = true;
                 day = filePathItems[1];
-                hour = filePathItems[2];
-                fusionPath = createFusionDirPath(domain, day, hour);
+                time = filePathItems[2];
+                fusionPath = createFusionDirPath(domain, day, time);
                 break;
             case 2:
                 day = filePathItems[1];
@@ -140,15 +139,15 @@ public class FusionFileSystem extends FileSystem {
                         String gzFileName = item.name.split("/")[1];//trim fusion version tag
                         String[] gzFileNameItems = gzFileName.split("_");
                         String itemDay = gzFileNameItems[1].substring(0, 10);
-                        String itemHour = gzFileNameItems[1].substring(11, 13);
+                        String itemTime = gzFileNameItems[1].substring(11);
                         String itemPartName = gzFileNameItems[2];
 
                         if (isGzFolder) {
-                            String fusionFsPath = String.format("/%s/%s/%s", itemDay, itemHour, itemPartName);
+                            String fusionFsPath = String.format("/%s/%s/%s", itemDay, itemTime, itemPartName);
                             fileStatusList.add(new FileStatus(item.size, false, 0, 0, item.mtime * 1000,
                                     new Path(this.baseUri.getScheme(), this.baseUri.getAuthority(), fusionFsPath)));
                         } else {
-                            String fusionFsPath = String.format("/%s/%s", itemDay, itemHour);
+                            String fusionFsPath = String.format("/%s/%s", itemDay, itemTime);
                             FileStatus fileStatus = new FileStatus(0, true, 0, 0, item.mtime * 1000,
                                     new Path(this.baseUri.getScheme(), this.baseUri.getAuthority(), fusionFsPath));
                             if (!fileStatusList.contains(fileStatus)) {
@@ -188,7 +187,7 @@ public class FusionFileSystem extends FileSystem {
         String filePath = path.toUri().getPath();
 
         String day;
-        String hour;
+        String time;
         String gzFileName;
         String fusionPath = null;
 
@@ -196,9 +195,9 @@ public class FusionFileSystem extends FileSystem {
         if (filePath.endsWith(".gz") || filePathItems.length == 4) {
             //gz files
             day = filePathItems[1];
-            hour = filePathItems[2];
+            time = filePathItems[2];
             gzFileName = filePathItems[3];
-            fusionPath = createFusionFilePath(domain, day, hour, gzFileName);
+            fusionPath = createFusionFilePath(domain, day, time, gzFileName);
             log.info("find status for fusion file path " + fusionPath);
 
             if (fusionLogItems != null) {
@@ -212,16 +211,12 @@ public class FusionFileSystem extends FileSystem {
             switch (filePathItems.length) {
                 case 3:
                     day = filePathItems[1];
-                    hour = filePathItems[2];
-                    fusionPath = createFusionDirPath(domain, day, hour);
-                    //treat as dir
-                    fusionPath += "_";
+                    time = filePathItems[2];
+                    fusionPath = createFusionDirPath(domain, day, time);
                     break;
                 case 2:
                     day = filePathItems[1];
                     fusionPath = createFusionDirPath(domain, day);
-                    //treat as dir
-                    fusionPath += "-";
                     break;
                 default:
                     throw new IOException("invalid fusion file system path");
@@ -240,12 +235,12 @@ public class FusionFileSystem extends FileSystem {
         return null;
     }
 
-    private String createFusionFilePath(String domain, String day, String hour, String gzFileName) {
-        return String.format("%s/%s_%s-%s_%s", FUSION_VERSION, domain, day, hour, gzFileName);
+    private String createFusionFilePath(String domain, String day, String time, String gzFileName) {
+        return String.format("%s/%s_%s-%s_%s", FUSION_VERSION, domain, day, time, gzFileName);
     }
 
-    private String createFusionDirPath(String domain, String day, String hour) {
-        return String.format("%s/%s_%s-%s", FUSION_VERSION, domain, day, hour);
+    private String createFusionDirPath(String domain, String day, String time) {
+        return String.format("%s/%s_%s-%s", FUSION_VERSION, domain, day, time);
     }
 
     private String createFusionDirPath(String domain, String day) {
